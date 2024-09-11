@@ -152,13 +152,29 @@ local function psql_run_curr_buf()
 end
 
 local function psql_format()
-	local current_buf_name = vim.api.nvim_buf_get_name(0)
-	if not is_sql_file(current_buf_name) then
-		vim.notify("Not a SQL file!", vim.log.levels.ERROR)
-		return
-	end
-	os.execute(string.format("pg_format -i %s", current_buf_name))
-	vim.api.nvim_command("edit")
+    local current_buf = vim.api.nvim_get_current_buf()
+    local current_buf_name = vim.api.nvim_buf_get_name(0)
+
+    if not is_sql_file(current_buf_name) then
+        vim.notify("Not a SQL file!", vim.log.levels.ERROR)
+        return
+    end
+
+    -- Detach LSP clients before making changes
+    for _, client in pairs(vim.lsp.get_clients()) do
+        vim.lsp.buf_detach_client(current_buf, client.id)
+    end
+
+    -- Execute pg_format command on the file
+    os.execute(string.format("pg_format -i %s", current_buf_name))
+
+    -- Reload the buffer
+    vim.api.nvim_command("edit")
+
+    -- Reattach LSP clients after reloading the buffer
+    for _, client in pairs(vim.lsp.get_clients()) do
+        vim.lsp.buf_attach_client(current_buf, client.id)
+    end
 end
 
 local function psql_temp()
