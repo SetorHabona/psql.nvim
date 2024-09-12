@@ -142,6 +142,41 @@ local function psql_run_visual()
 	psql_run_file(tmp_sql_file)
 end
 
+local function select_sql_statement()
+  local current_pos = vim.fn.getpos('.')
+  local start_pos = vim.fn.searchpos([[\v(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|WITH)\_s+]], 'cnbW')
+
+  -- If no matching positions found, reset cursor and return
+  if start_pos[1] == 0 then
+    vim.fn.setpos('.', current_pos)
+    return false
+  end
+
+  -- if cursor starts between two queries avoids selecting both
+  vim.fn.setpos('.', {0, start_pos[1], start_pos[2], 0})
+  vim.cmd('normal! v')
+
+  local end_pos = vim.fn.searchpos(';\\s*$', 'cW')
+
+  -- If no matching positions found, reset cursor and return
+  if end_pos[1] == 0 then
+    vim.fn.setpos('.', current_pos)
+    return false
+  end
+
+  vim.fn.setpos('.', {0, end_pos[1], end_pos[2], 0})
+  return true
+end
+
+local function psql_run_close_to_cursor()
+  select_sql_statement()
+  if select_sql_statement() then
+    psql_run_visual()
+  end
+  vim.cmd('normal! v\\<Esc>')
+end
+
+
 local function psql_run_curr_buf()
 	local current_buf_name = vim.api.nvim_buf_get_name(0)
 	if not is_sql_file(current_buf_name) then
@@ -187,6 +222,7 @@ end
 return {
 	psql_run_curr_buf = psql_run_curr_buf,
 	psql_run_visual = psql_run_visual,
+  psql_run_close_to_cursor = psql_run_close_to_cursor,
 	psql_cancel = psql_cancel,
 	psql_run_file = psql_run_file,
 	psql_temp = psql_temp,

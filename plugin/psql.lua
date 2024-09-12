@@ -5,6 +5,13 @@ vim.api.nvim_create_user_command(
 	psql.psql_run_curr_buf,
 	{}
 )
+
+vim.api.nvim_create_user_command(
+	"PgRunCursor",
+	psql.psql_run_close_to_cursor,
+	{}
+)
+
 vim.api.nvim_create_user_command(
 	"PgCancel",
 	psql.psql_cancel,
